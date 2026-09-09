@@ -94,3 +94,25 @@ export interface ApiKeys {
   geminiApiKey: string;
   elevenlabsApiKey: string;
 }
+
+export interface HistoryEntry {
+  job_id: string;
+  timestamp: number;
+  input_type: InputType;
+  input_content: string;
+  format_type: FormatType;
+  target_duration_sec: number;
+  voice_count: number;
+  gender_preference: string;
+  custom_instructions: string;
+  title: string;
+  logline: string;
+  tone: string;
+  total_duration: number;
+  total_lines: number;
+  file_size_bytes: number;
+  cast: VoiceCasting[];
+  audio_url: string;
+  download_url: string;
+  audio_exists: boolean;
+}

@@ -145,6 +145,32 @@ async def get_audio(job_id: str, download: bool = False):
     )
 
 
+@app.get("/api/history")
+async def get_history():
+    """Returns all past production jobs sorted by newest first."""
+    entries = []
+    try:
+        for fname in os.listdir(AUDIO_OUTPUT_DIR):
+            if fname.endswith("_meta.json"):
+                meta_path = os.path.join(AUDIO_OUTPUT_DIR, fname)
+                try:
+                    with open(meta_path, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                    # Also confirm the audio file still exists
+                    audio_path = os.path.join(AUDIO_OUTPUT_DIR, f"{meta.get('job_id', '')}_master.mp3")
+                    meta["audio_exists"] = os.path.exists(audio_path)
+                    entries.append(meta)
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+    # Sort newest first
+    entries.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+    return {"history": entries, "total": len(entries)}
+
+
+
 # Serve React static assets if built in frontend/dist
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists() and (frontend_dist / "index.html").exists():

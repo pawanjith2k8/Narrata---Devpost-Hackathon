@@ -5,6 +5,7 @@ import { AgentArtifactConsole } from './components/AgentArtifactConsole';
 import { ScriptCastViewer } from './components/ScriptCastViewer';
 import { StudioPlayer } from './components/StudioPlayer';
 import { ApiKeyModal } from './components/ApiKeyModal';
+import { HistoryPage } from './components/HistoryPage';
 import {
   InputType,
   FormatType,
@@ -17,6 +18,8 @@ import {
   ProductionArtifact,
   ApiKeys
 } from './types';
+
+type ActiveTab = 'studio' | 'history';
 
 const INITIAL_STEPS: StepStatus[] = [
   { step: 1, step_name: 'Research & Plan', status: 'pending' },
@@ -34,6 +37,7 @@ export function App() {
     };
   });
 
+  const [activeTab, setActiveTab] = useState<ActiveTab>('studio');
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -267,65 +271,73 @@ export function App() {
         apiKeys={apiKeys}
         onOpenKeyModal={() => setIsKeyModalOpen(true)}
         isGenerating={isGenerating}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
       {/* Main Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Studio Input Bar */}
-        <StudioInput
-          onGenerate={handleGenerate}
-          isGenerating={isGenerating}
-        />
-
-        {/* Live Studio Workspace Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Live Agent Artifact Console (Antigravity Style) */}
-          <div className="lg:col-span-5 space-y-6">
-            <AgentArtifactConsole
-              steps={steps}
-              thoughts={thoughts}
-              toolCalls={toolCalls}
-              outline={outline}
-              error={error}
-              currentStep={currentStep}
-            />
-          </div>
-
-          {/* Right Column: Production Output Stage */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Master Studio Audio Player when completed */}
-            {finalArtifact && (
-              <StudioPlayer
-                artifact={finalArtifact}
-                onTimeUpdate={handleTimeUpdate}
-                seekTime={seekTime}
-              />
-            )}
-
-            {/* Dynamic Voice Cast & Synchronized Script Viewer */}
-            <ScriptCastViewer
-              cast={cast}
-              scriptLines={scriptLines}
-              activeLineId={activeLineId}
-              onSeekToLine={handleSeekToLine}
+      <main className="flex-1 w-full">
+        {activeTab === 'history' ? (
+          <HistoryPage />
+        ) : (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+            {/* Studio Input Bar */}
+            <StudioInput
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
             />
 
-            {/* Empty State when no generation has started */}
-            {!finalArtifact && scriptLines.length === 0 && !isGenerating && (
-              <div className="bg-studio-900/40 border border-studio-800/60 rounded-2xl p-10 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-brand-blue/10 border border-brand-blue/20 text-brand-cyan flex items-center justify-center mx-auto">
-                  <span className="text-xl">🎙️</span>
-                </div>
-                <h3 className="text-sm font-bold text-slate-200">
-                  Ready for Production
-                </h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  Enter any topic, URL, or script above to begin. Narrata will autonomously plan the narrative arc, write multi-turn dialogue, cast ElevenLabs voices via MCP, and master the studio audio.
-                </p>
+            {/* Live Studio Workspace Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Live Agent Artifact Console */}
+              <div className="lg:col-span-5 space-y-6">
+                <AgentArtifactConsole
+                  steps={steps}
+                  thoughts={thoughts}
+                  toolCalls={toolCalls}
+                  outline={outline}
+                  error={error}
+                  currentStep={currentStep}
+                />
               </div>
-            )}
+
+              {/* Right Column: Production Output Stage */}
+              <div className="lg:col-span-7 space-y-6">
+                {/* Master Studio Audio Player when completed */}
+                {finalArtifact && (
+                  <StudioPlayer
+                    artifact={finalArtifact}
+                    onTimeUpdate={handleTimeUpdate}
+                    seekTime={seekTime}
+                  />
+                )}
+
+                {/* Dynamic Voice Cast & Synchronized Script Viewer */}
+                <ScriptCastViewer
+                  cast={cast}
+                  scriptLines={scriptLines}
+                  activeLineId={activeLineId}
+                  onSeekToLine={handleSeekToLine}
+                />
+
+                {/* Empty State when no generation has started */}
+                {!finalArtifact && scriptLines.length === 0 && !isGenerating && (
+                  <div className="bg-studio-900/40 border border-studio-800/60 rounded-2xl p-10 text-center space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-blue/10 border border-brand-blue/20 text-brand-cyan flex items-center justify-center mx-auto">
+                      <span className="text-xl">🎙️</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-200">
+                      Ready for Production
+                    </h3>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      Enter any topic, URL, or script above to begin. Narrata will autonomously plan the narrative arc, write multi-turn dialogue, cast ElevenLabs voices via MCP, and master the studio audio.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* API Key Modal */}
@@ -340,3 +352,4 @@ export function App() {
 }
 
 export default App;
+

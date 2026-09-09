@@ -35,7 +35,7 @@ class NarrataAgent:
     ):
         self.gemini_key = gemini_api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
         self.elevenlabs_key = elevenlabs_api_key or os.getenv("ELEVENLABS_API_KEY", "")
-        self.model_name = model_name
+        self.model_name = model_name or "gemini-2.0-flash"
         self.mcp_registry = ElevenLabsMCPToolRegistry(api_key=self.elevenlabs_key)
 
     def _get_gemini_client(self, override_key: Optional[str] = None) -> genai.Client:
@@ -58,11 +58,13 @@ class NarrataAgent:
 
     def _generate_with_fallback(self, client: genai.Client, prompt: str, temperature: float = 0.7) -> str:
         """Tries verified flash models with automatic fallback."""
-        candidate_models = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"]
+        # Valid Gemini model IDs - confirmed working (API-recommended names)
+        candidate_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.5-flash-lite"]
         last_error = None
         for model in candidate_models:
             for attempt in range(2):
                 try:
+                    # First attempt: JSON mode (faster parsing)
                     resp = client.models.generate_content(
                         model=model,
                         contents=prompt,
@@ -75,9 +77,24 @@ class NarrataAgent:
                         return self._clean_json_text(resp.text)
                 except Exception as e:
                     last_error = e
+                    if attempt == 0:
+                        # Retry without JSON mode (plain text fallback)
+                        try:
+                            resp2 = client.models.generate_content(
+                                model=model,
+                                contents=prompt,
+                                config=types.GenerateContentConfig(
+                                    temperature=temperature
+                                )
+                            )
+                            if resp2.text:
+                                return self._clean_json_text(resp2.text)
+                        except Exception as e2:
+                            last_error = e2
                     time.sleep(1)
                     continue
         raise last_error or RuntimeError("All candidate Gemini models failed.")
+
 
     async def run_pipeline(
         self,
@@ -657,6 +674,34 @@ Output ONLY pure JSON. No markdown backticks, no preamble."""
                 }
             }
         }
+
+        # Save metadata sidecar for history
+        try:
+            sidecar_path = os.path.join(output_dir, f"{job_id}_meta.json")
+            history_meta = {
+                "job_id": job_id,
+                "timestamp": time.time(),
+                "input_type": input_type,
+                "input_content": input_content,
+                "format_type": format_type,
+                "target_duration_sec": target_duration_sec,
+                "voice_count": voice_count,
+                "gender_preference": gender_preference,
+                "custom_instructions": custom_instructions,
+                "title": outline_data.get("title", ""),
+                "logline": outline_data.get("logline", ""),
+                "tone": outline_data.get("tone", ""),
+                "total_duration": stitch_result["total_duration"],
+                "total_lines": stitch_result["total_lines"],
+                "file_size_bytes": stitch_result["file_size_bytes"],
+                "cast": castings,
+                "audio_url": f"/api/audio/{job_id}",
+                "download_url": f"/api/audio/{job_id}?download=true"
+            }
+            with open(sidecar_path, "w", encoding="utf-8") as f:
+                json.dump(history_meta, f, indent=2)
+        except Exception:
+            pass  # History save failing must never break the pipeline
 
         yield {
             "event": "step_start",

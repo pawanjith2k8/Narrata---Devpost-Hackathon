@@ -1,17 +1,23 @@
 import React from 'react';
-import { Mic2, Key, Radio, Sparkles, ExternalLink } from 'lucide-react';
+import { Mic2, Key, Radio, Sparkles, Clock } from 'lucide-react';
 import { ApiKeys } from '../types';
+
+type ActiveTab = 'studio' | 'history';
 
 interface HeaderProps {
   apiKeys: ApiKeys;
   onOpenKeyModal: () => void;
   isGenerating: boolean;
+  activeTab: ActiveTab;
+  onTabChange: (tab: ActiveTab) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   apiKeys,
   onOpenKeyModal,
-  isGenerating
+  isGenerating,
+  activeTab,
+  onTabChange,
 }) => {
   const hasGemini = Boolean(apiKeys.geminiApiKey);
   const hasEleven = Boolean(apiKeys.elevenlabsApiKey);
@@ -47,16 +53,34 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
+        {/* Center: Tab Navigation */}
+        <div className="hidden md:flex items-center gap-1 px-1 py-1 rounded-xl bg-studio-850/80 border border-studio-700/60">
+          <button
+            onClick={() => onTabChange('studio')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'studio'
+                ? 'bg-brand-blue/20 text-brand-cyan border border-brand-blue/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Radio className="w-3.5 h-3.5" />
+            Studio
+          </button>
+          <button
+            onClick={() => onTabChange('history')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'history'
+                ? 'bg-brand-purple/20 text-brand-pink border border-brand-purple/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            History
+          </button>
+        </div>
+
         {/* Right Nav */}
         <div className="flex items-center gap-3">
-          {/* Status Indicator */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-studio-850/80 border border-studio-700/60 text-xs">
-            <Radio className="w-3.5 h-3.5 text-brand-cyan animate-pulse" />
-            <span className="text-slate-400">Gemini 2.5</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-400">ElevenLabs MCP</span>
-          </div>
-
           {/* API Key Modal Button */}
           <button
             onClick={onOpenKeyModal}
@@ -71,6 +95,14 @@ export const Header: React.FC<HeaderProps> = ({
             {(!hasGemini || !hasEleven) && (
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
             )}
+          </button>
+
+          {/* Mobile: History tab button */}
+          <button
+            onClick={() => onTabChange(activeTab === 'history' ? 'studio' : 'history')}
+            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-studio-850/80 border border-studio-700/60 transition"
+          >
+            <Clock className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
